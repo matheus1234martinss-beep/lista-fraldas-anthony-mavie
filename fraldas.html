@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Escolha sua fralda ❤️</title>
+<style>
+body {
+  margin: 0;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+  background: #fff7f5;
+  color: #553b43;
+  text-align: center;
+}
+h1 { color: #bd6684; }
+p { line-height: 1.5; }
+.grupo {
+  background: white;
+  padding: 18px;
+  margin: 18px auto;
+  border-radius: 18px;
+  max-width: 420px;
+  box-shadow: 0 3px 12px #0001;
+}
+h2 { color: #bd6684; }
+.opcoes {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.item {
+  padding: 15px 5px;
+  border: 1px solid #e5b8c7;
+  border-radius: 12px;
+  background: #fff;
+  font-weight: bold;
+}
+.item.escolhido {
+  background: #bd6684;
+  color: white;
+  opacity: .75;
+}
+.item:disabled { cursor: not-allowed; }
+small { display: block; margin-top: 5px; }
+</style>
+</head>
+<body>
+
+<h1>🧸 Chá de Fraldas</h1>
+<p>Escolha com carinho o tamanho e o número da fralda que deseja presentear!</p>
+
+<div id="conteudo"></div>
+
+<script>
+const tamanhos = ["P", "M", "G"];
+const conteudo = document.getElementById("conteudo");
+
+tamanhos.forEach(tamanho => {
+  const grupo = document.createElement("section");
+  grupo.className = "grupo";
+  grupo.innerHTML = `<h2>Fraldas tamanho ${tamanho}</h2>
+  <div class="opcoes" id="opcoes-${tamanho}"></div>`;
+  conteudo.appendChild(grupo);
+
+  const opcoes = grupo.querySelector(".opcoes");
+
+  for (let i = 1; i <= 15; i++) {
+    const botao = document.createElement("button");
+    botao.className = "item";
+    botao.innerHTML = `${tamanho} ${i}<small>Disponível</small>`;
+    botao.onclick = () => {
+      alert("Vamos ativar a reserva compartilhada no próximo passo!");
+    };
+    opcoes.appendChild(botao);
+  }
+});
+</script>
+
+</body>
+</html>
