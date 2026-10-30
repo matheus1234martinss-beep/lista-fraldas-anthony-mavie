@@ -1,10 +1,14 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Escolha sua fralda ❤️</title>
+<title>Lista de Fraldas - Anthony ou Mavie</title>
+
 <style>
+* { box-sizing: border-box; }
+
 body {
   margin: 0;
   padding: 20px;
@@ -13,69 +17,208 @@ body {
   color: #553b43;
   text-align: center;
 }
+
 h1 { color: #bd6684; }
-p { line-height: 1.5; }
+
 .grupo {
   background: white;
   padding: 18px;
   margin: 18px auto;
   border-radius: 18px;
-  max-width: 420px;
+  max-width: 440px;
   box-shadow: 0 3px 12px #0001;
 }
+
 h2 { color: #bd6684; }
+
 .opcoes {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 10px;
 }
+
 .item {
-  padding: 15px 5px;
+  padding: 14px 4px;
   border: 1px solid #e5b8c7;
   border-radius: 12px;
-  background: #fff;
+  background: white;
+  color: #553b43;
   font-weight: bold;
+  cursor: pointer;
 }
+
 .item.escolhido {
   background: #bd6684;
   color: white;
-  opacity: .75;
+  border-color: #bd6684;
+  cursor: not-allowed;
 }
-.item:disabled { cursor: not-allowed; }
-small { display: block; margin-top: 5px; }
+
+.item:disabled { opacity: .85; }
+
+small {
+  display: block;
+  margin-top: 5px;
+  font-size: 11px;
+}
+
+#status {
+  padding: 12px;
+  color: #bd6684;
+  font-weight: bold;
+}
 </style>
 </head>
+
 <body>
 
 <h1>🧸 Chá de Fraldas</h1>
-<p>Escolha com carinho o tamanho e o número da fralda que deseja presentear!</p>
 
+<p>Anthony ou Mavie está chegando!</p>
+
+<p>
+Escolha uma fralda disponível e informe seu nome.
+Cada número só poderá ser reservado uma vez.
+</p>
+
+<div id="status">Conectando ao sistema...</div>
 <div id="conteudo"></div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+
 <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyB2rcg0rZWOBV3MMHWYRDn3QoQkjSQ4BLk",
+  authDomain: "convite-anthony-mavie.firebaseapp.com",
+  projectId: "convite-anthony-mavie",
+  storageBucket: "convite-anthony-mavie.firebasestorage.app",
+  messagingSenderId: "800155847268",
+  appId: "1:800155847268:web:107e843a058f05293d6d71"
+};
+
+firebase.initializeApp(firebaseConfig);
+
+const db = firebase.firestore();
+const reservas = db.collection("reservas_fraldas");
+
 const tamanhos = ["P", "M", "G"];
 const conteudo = document.getElementById("conteudo");
+const status = document.getElementById("status");
 
-tamanhos.forEach(tamanho => {
-  const grupo = document.createElement("section");
-  grupo.className = "grupo";
-  grupo.innerHTML = `<h2>Fraldas tamanho ${tamanho}</h2>
-  <div class="opcoes" id="opcoes-${tamanho}"></div>`;
-  conteudo.appendChild(grupo);
+const reservadas = {};
 
-  const opcoes = grupo.querySelector(".opcoes");
+function montarLista() {
+  conteudo.innerHTML = "";
 
-  for (let i = 1; i <= 15; i++) {
-    const botao = document.createElement("button");
-    botao.className = "item";
-    botao.innerHTML = `${tamanho} ${i}<small>Disponível</small>`;
-    botao.onclick = () => {
-      alert("Vamos ativar a reserva compartilhada no próximo passo!");
-    };
-    opcoes.appendChild(botao);
+  tamanhos.forEach(tamanho => {
+    const grupo = document.createElement("section");
+    grupo.className = "grupo";
+
+    const titulo = document.createElement("h2");
+    titulo.textContent = "Fraldas tamanho " + tamanho;
+
+    const opcoes = document.createElement("div");
+    opcoes.className = "opcoes";
+
+    for (let i = 1; i <= 15; i++) {
+      const id = tamanho + "_" + i;
+      const reserva = reservadas[id];
+
+      const botao = document.createElement("button");
+      botao.className = "item";
+
+      if (reserva) {
+        botao.classList.add("escolhido");
+        botao.disabled = true;
+        botao.textContent = tamanho + " " + i;
+
+        const detalhe = document.createElement("small");
+        detalhe.textContent = "Escolhida ❤️";
+        botao.appendChild(detalhe);
+      } else {
+        botao.textContent = tamanho + " " + i;
+
+        const detalhe = document.createElement("small");
+        detalhe.textContent = "Disponível";
+        botao.appendChild(detalhe);
+
+        botao.onclick = () => escolherFralda(tamanho, i);
+      }
+
+      opcoes.appendChild(botao);
+    }
+
+    grupo.appendChild(titulo);
+    grupo.appendChild(opcoes);
+    conteudo.appendChild(grupo);
+  });
+}
+
+async function escolherFralda(tamanho, numero) {
+  const nome = prompt("Digite seu nome para reservar esta fralda:");
+
+  if (nome === null) return;
+
+  const nomeLimpo = nome.trim();
+
+  if (nomeLimpo.length < 2 || nomeLimpo.length > 60) {
+    alert("Digite um nome entre 2 e 60 caracteres.");
+    return;
   }
-});
-</script>
 
+  const id = tamanho + "_" + numero;
+  const documento = reservas.doc(id);
+
+  status.textContent = "Registrando sua escolha...";
+
+  try {
+    await db.runTransaction(async transaction => {
+      const resultado = await transaction.get(documento);
+
+      if (resultado.exists) {
+        throw new Error("OCUPADA");
+      }
+
+      transaction.set(documento, {
+        nome: nomeLimpo,
+        tamanho: tamanho,
+        numero: numero,
+        criadoEm: firebase.firestore.FieldValue.serverTimestamp()
+      });
+    });
+
+    alert("Fralda reservada com sucesso! ❤️");
+
+  } catch (erro) {
+    if (erro.message === "OCUPADA") {
+      alert("Essa fralda acabou de ser escolhida por outra pessoa!");
+    } else {
+      console.error(erro);
+      alert("Não foi possível reservar. Verifique sua conexão e tente novamente.");
+    }
+  }
+
+  status.textContent = "Lista atualizada em tempo real ❤️";
+}
+
+reservas.onSnapshot(snapshot => {
+  Object.keys(reservadas).forEach(id => delete reservadas[id]);
+
+  snapshot.forEach(doc => {
+    reservadas[doc.id] = doc.data();
+  });
+
+  montarLista();
+
+  status.textContent =
+    "Sistema conectado! Escolha sua fralda ❤️";
+
+}, erro => {
+  console.error(erro);
+  status.textContent = "Erro ao conectar. Verifique as regras do Firebase.";
+});
+
+</script>
 </body>
 </html>
